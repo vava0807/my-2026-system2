@@ -200,6 +200,47 @@ class DatabaseSync {
       console.error('同步失敗:', error);
     }
   }
+
+    // 全量同步資料到 Firebase
+  async saveAllData(data) {
+    if (!this.isFirebaseReady) return;
+    try {
+      const updates = {};
+      if (data.pets) {
+        updates['pets'] = {};
+        data.pets.forEach((p, i) => { updates['pets'][p.id || i] = p; });
+      }
+      if (data.notes) {
+        updates['notes'] = {};
+        data.notes.forEach((n, i) => { updates['notes'][n.id || i] = n; });
+      }
+      if (data.diaries) {
+        updates['diaries'] = {};
+        data.diaries.forEach((d, i) => { updates['diaries'][d.id || i] = d; });
+      }
+      if (data.stats) {
+        updates['stats'] = data.stats;
+      }
+      await this.database.ref().update(updates);
+      console.log('全量資料已同步至 Firebase');
+    } catch (error) {
+      console.error('全量同步失敗:', error);
+    }
+  }
+
+    // 獲取統計資料
+  async getStats() {
+    if (this.isFirebaseReady) {
+      try {
+        const snapshot = await this.database.ref('stats').once('value');
+        return snapshot.val();
+      } catch (error) {
+        console.error('獲取統計失敗:', error);
+        return null;
+      }
+    }
+    return null;
+  }
 }
 
 // 全域實例
