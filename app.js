@@ -1241,6 +1241,11 @@ function saveAllData() {
     // 更新最後驗證數量
     lastValidPetsCount = pets.length;
     lastValidDiariesCount = diaries.length;
+
+        // 同步到 Firebase
+    if (window.dbSync) {
+        window.dbSync.saveAllData({ pets, notes, diaries, stats });
+    }
 }
 
 function addPet(forcedType = null) {
@@ -1339,6 +1344,7 @@ function deleteDiary(id) {
     diaries = diaries.filter(d => d.id !== id);
     stats.totalDiaries = diaries.length;
     saveAllData();
+        if (window.dbSync) window.dbSync.deleteDiary(id);
     updateUI();
 }
 
@@ -1433,10 +1439,42 @@ function updateUI() {
     });
 }
 
-function initApp() {
+async function initApp() {
     try {
         loadData();
         initThreeJS();
+        // === Firebase 雲端載入 ===
+        if (window.dbSync && window.dbSync.isFirebaseReady) {
+            console.log('正在從 Firebase 載入雲端資料...');
+            try {
+                const fbDiaries = await window.dbSync.getAllDiaries();
+                const fbPets = await window.dbSync.getAllPets();
+                const fbNotes = await window.dbSync.getAllNotes();
+                if (fbDiaries && fbDiaries.length > 0) {
+                    const fbDiaryIds = new Set(fbDiaries.map(d => d.id));
+                    const localOnly = diaries.filter(d => !fbDiaryIds.has(d.id));
+                    diaries = [...fbDiaries, ...localOnly];
+                    diaries.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                }
+                if (fbPets && fbPets.length > 0) {
+                    const fbPetIds = new Set(fbPets.map(p => p.id));
+                    const localOnlyPets = pets.filter(p => !fbPetIds.has(p.id));
+                    pets = [...fbPets, ...localOnlyPets];
+                }
+                if (fbNotes && fbNotes.length > 0) {
+                    const fbNoteIds = new Set(fbNotes.map(n => n.id));
+                    const localOnlyNotes = notes.filter(n => !fbNoteIds.has(n.id));
+                    notes = [...fbNotes, ...localOnlyNotes];
+                }
+                stats.dogs = pets.filter(p => p.type === 'dog').length;
+                stats.cats = pets.filter(p => p.type === 'cat').length;
+                stats.totalDiaries = diaries.length;
+                saveAllData();
+                console.log('Firebase 雲端資料載入完成');
+            } catch (err) {
+                console.warn('Firebase 載入失敗:', err);
+            }
+        }
 
         // 如果是新用戶或本地切換，顯示提示
         if (pets.length === 0 && diaries.length === 0) {
