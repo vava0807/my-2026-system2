@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>pet - 2026</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="container">
+        <!-- 標題區 -->
+        <header class="header">
+            <h1>pet - 2026</h1>
+            <p class="subtitle">每天寫日記，收集可愛的毛孩們！</p>
+        </header>
+
+        <!-- 主要布局：農場 + 日記歷史 -->
+        <div class="main-layout">
+            <!-- 左欄：日記輸入 + 筆記 -->
+            <div class="left-panel">
+                <!-- 日記記錄區 -->
+                <section class="diary-section">
+                    <h2>✍️ 日記</h2>
+                    <div class="diary-form">
+                        <textarea id="diaryContent" placeholder="記錄你今天的故事吧！每次都能獲得一隻新寵物！🎉" rows="6"></textarea>
+                        <button id="saveDiaryBtn" class="btn btn-primary">
+                            💾 儲存日記並獲得寵物
+                        </button>
+                    </div>
+                </section>
+
+                <!-- 臨時筆記區 -->
+                <section class="notes-section">
+                    <h2>📌 臨時筆記</h2>
+                    <div class="note-form">
+                        <input type="text" id="noteInput" placeholder="快速記錄臨時事項..." />
+                        <button id="addNoteBtn" class="btn btn-secondary">➕ 新增</button>
+                    </div>
+                    <ul id="notesList" class="notes-list">
+                        <!-- 筆記會動態加入這裡 -->
+                    </ul>
+                </section>
+            </div>
+
+            <!-- 中欄：寵物農場（最大） -->
+            <section class="pet-farm">
+                <h2>pet - 2026</h2>
+                <div class="pet-stats">
+                    <span class="stat-item">🐶 狗狗: <strong id="dogCount">0</strong></span>
+                    <span class="stat-item">🐱 貓咪: <strong id="catCount">0</strong></span>
+                    <span class="stat-item">📌 筆記: <strong id="totalNotes">0</strong></span>
+                    <span class="stat-item">� 總日記: <strong id="totalDiaries">0</strong></span>
+                </div>
+                <!-- 診斷資訊區 -->
+                <div id="debugInfo"
+                    style="display:none; position: absolute; top: 150px; left: 50%; transform: translateX(-50%); width: 80%; max-width: 600px; background: #fff3f3; color: #d32f2f; padding: 15px; border-radius: 12px; font-size: 14px; border: 2px solid #ffcdd2; z-index: 100; box-shadow: 0 4px 15px rgba(0,0,0,0.1); line-height: 1.6;">
+                </div>
+
+                <div id="petContainer" class="pet-container">
+                    <!-- 3D 農場會在這裡 -->
+                </div>
+            </section>
+
+            <!-- 右欄：日記歷史 -->
+            <section class="history-section">
+                <h2>📖 日記歷史</h2>
+                <div id="diaryHistory" class="diary-history">
+                    <!-- 歷史日記會動態加入這裡 -->
+                </div>
+            </section>
+        </div>
+
+        <!-- 同步按鈕 -->
+        <div class="sync-actions"
+            style="position: fixed; bottom: 20px; right: 20px; display: flex; gap: 10px; z-index: 1000; pointer-events: auto;">
+            <button id="exportBtn" class="btn"
+                style="background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.3); color: #333; padding: 10px 20px; border-radius: 30px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">💾
+                匯出備份</button>
+            <button id="importBtn" class="btn"
+                style="background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.3); color: #333; padding: 10px 20px; border-radius: 30px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">📥
+                匯入還原</button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <!-- Firebase SDK (Compat Version) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <!-- 載入後台配置與同步邏輯 -->
+    <script src="firebase-config.js"></script>
+    <script src="database-sync.js"></script>
+
+    <!-- 載入應用程式 -->
+    <script src="app.js"></script>
+</body>
+
+</html>

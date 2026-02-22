@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📊 寵物農場日記 - 後台管理</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    h1 {
+      text-align: center;
+      color: #667eea;
+      margin-bottom: 30px;
+    }
+    .status {
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      font-weight: bold;
+    }
+    .status.connected {
+      background: #d4edda;
+      color: #155724;
+    }
+    .status.disconnected {
+      background: #f8d7da;
+      color: #721c24;
+    }
+    .btn {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 5px;
+    }
+    .btn:hover {
+      background: #5568d3;
+    }
+    .section {
+      margin: 30px 0;
+      padding: 20px;
+      border: 2px solid #eee;
+      border-radius: 10px;
+    }
+    .section h2 {
+      color: #667eea;
+      margin-bottom: 15px;
+    }
+    .diary-item, .note-item {
+      background: #f8f9fa;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 8px;
+      border-left: 4px solid #667eea;
+    }
+    .diary-item h3 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+    .timestamp {
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+    .delete-btn {
+      background: #dc3545;
+      padding: 8px 16px;
+      font-size: 14px;
+    }
+    .delete-btn:hover {
+      background: #c82333;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+    }
+    .stat-card h3 {
+      font-size: 32px;
+      margin-bottom: 5px;
+    }
+    .loading {
+      text-align: center;
+      padding: 20px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📊 寵物農場日記 - 後台管理</h1>
+    
+    <div id="status" class="status disconnected">
+      ⚠️ 正在連接 Firebase...
+    </div>
+
+    <div class="stats" id="stats">
+      <div class="stat-card">
+        <h3 id="totalDiaries">0</h3>
+        <p>總日記數</p>
+      </div>
+      <div class="stat-card">
+        <h3 id="totalNotes">0</h3>
+        <p>總筆記數</p>
+      </div>
+      <div class="stat-card">
+        <h3 id="totalPets">0</h3>
+        <p>總寵物數</p>
+      </div>
+    </div>
+
+    <div style="text-align: center; margin-bottom: 30px;">
+      <button class="btn" onclick="syncData()">🔄 同步資料</button>
+      <button class="btn" onclick="refreshData()">🔃 刷新數據</button>
+      <button class="btn" onclick="exportData()">💾 匯出備份</button>
+    </div>
+
+    <div class="section">
+      <h2>📖 所有日記</h2>
+      <div id="diariesList" class="loading">加載中...</div>
+    </div>
+
+    <div class="section">
+      <h2>📒 所有筆記</h2>
+      <div id="notesList" class="loading">加載中...</div>
+    </div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  
+  <!-- 你的 Firebase 配置 -->
+  <script src="firebase-config.js"></script>
+  <script src="database-sync.js"></script>
+
+  <script>
+    let diariesData = [];
+    let notesData = [];
+
+    // 初始化
+    window.addEventListener('load', async () => {
+      checkFirebaseConnection();
+      await loadAllData();
+    });
+
+    // 檢查 Firebase 連接
+    function checkFirebaseConnection() {
+      const statusDiv = document.getElementById('status');
+      if (window.dbSync && window.dbSync.isFirebaseReady) {
+        statusDiv.className = 'status connected';
+        statusDiv.innerHTML = '✅ Firebase 已連接';
+      } else {
+        statusDiv.className = 'status disconnected';
+        statusDiv.innerHTML = '⚠️ 未連接 Firebase，使用本地數據';
+      }
+    }
+
+    // 加載所有資料
+    async function loadAllData() {
+      try {
+        diariesData = await window.dbSync.getAllDiaries();
+        notesData = await window.dbSync.getAllNotes();
+        
+        updateStats();
+        renderDiaries();
+        renderNotes();
+      } catch (error) {
+        console.error('加載資料失敗:', error);
+      }
+    }
+
+    // 更新統計
+    function updateStats() {
+      document.getElementById('totalDiaries').textContent = diariesData.length;
+      document.getElementById('totalNotes').textContent = notesData.length;
+      
+      // 計算總寵物數 (每篇日記獲得 1 隻寵物)
+      document.getElementById('totalPets').textContent = diariesData.length;
+    }
+
+    // 渲染日記
+    function renderDiaries() {
+      const container = document.getElementById('diariesList');
+      
+      if (diariesData.length === 0) {
+        container.innerHTML = '<p>沒有日記記錄</p>';
+        return;
+      }
+
+      container.innerHTML = diariesData.map(diary => `
+        <div class="diary-item">
+          <h3>${diary.date || '未設定日期'}</h3>
+          <div class="timestamp">建立時間: ${new Date(diary.timestamp || Date.now()).toLocaleString('zh-TW')}</div>
+          <p>${diary.content || diary.text || ''}</p>
+          <button class="btn delete-btn" onclick="deleteDiary('${diary.id}')">🗑️ 刪除</button>
+        </div>
+      `).join('');
+    }
+
+    // 渲染筆記
+    function renderNotes() {
+      const container = document.getElementById('notesList');
+      
+      if (notesData.length === 0) {
+        container.innerHTML = '<p>沒有筆記記錄</p>';
+        return;
+      }
+
+      container.innerHTML = notesData.map(note => `
+        <div class="note-item">
+          <div class="timestamp">${new Date(note.timestamp || Date.now()).toLocaleString('zh-TW')}</div>
+          <p>${note.text || ''}</p>
+          <button class="btn delete-btn" onclick="deleteNote('${note.id}')">🗑️ 刪除</button>
+        </div>
+      `).join('');
+    }
+
+    // 刪除日記
+    async function deleteDiary(id) {
+      if (!confirm('確定要刪除這篇日記嗎？')) return;
+      
+      await window.dbSync.deleteDiary(id);
+      await loadAllData();
+    }
+
+    // 刪除筆記
+    async function deleteNote(id) {
+      if (!confirm('確定要刪除這個筆記嗎？')) return;
+      
+      await window.dbSync.deleteNote(id);
+      await loadAllData();
+    }
+
+    // 同步資料
+    async function syncData() {
+      alert('正在同步資料...');
+      await window.dbSync.syncLocalToFirebase();
+      await loadAllData();
+      alert('同步完成！');
+    }
+
+    // 刷新資料
+    async function refreshData() {
+      await loadAllData();
+      alert('刷新完成！');
+    }
+
+    // 匯出資料
+    function exportData() {
+      const data = {
+        diaries: diariesData,
+        notes: notesData,
+        exportDate: new Date().toISOString()
+      };
+      
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `pet-diary-backup-${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>
